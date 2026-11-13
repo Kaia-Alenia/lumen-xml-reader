@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LUMEN</string>
+    <string name="app_subtitle">Lector XML y CFDI</string>
+    <string name="app_full_name">LUMEN - Lector XML y CFDI</string>
+    <string name="open_xml_file">Abrir archivo XML</string>
+    <string name="recent_files">Archivos recientes</string>
+    <string name="clear_history">Limpiar historial</string>
+    <string name="no_recent_files">No hay archivos abiertos recientemente</string>
+    <string name="search_placeholder">Buscar nodo, atributo o valor…</string>
+    <string name="expand_all">Expandir todo</string>
+    <string name="collapse_all">Colapsar todo</string>
+    <string name="copy_xpath">Copiar XPath</string>
+    <string name="copy_node">Copiar nodo</string>
+    <string name="node_details">Detalles del nodo</string>
+    <string name="close">Cerrar</string>
+    <string name="copied_to_clipboard">Copiado al portapapeles</string>
+    <string name="error_title">Error al procesar XML</string>
+    <string name="loading_xml">Analizando estructura XML…</string>
+    <string name="welcome_title">LUMEN - Lector XML y CFDI</string>
+    <string name="welcome_subtitle">Selecciona un archivo XML o ábrelo desde WhatsApp, Gmail o el explorador de archivos para examinar su estructura en árbol interactivo.</string>
+</resources>

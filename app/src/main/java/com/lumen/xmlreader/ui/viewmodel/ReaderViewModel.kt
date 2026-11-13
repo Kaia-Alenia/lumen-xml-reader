@@ -1,0 +1,112 @@
+package com.lumen.xmlreader.ui.viewmodel
+
+import android.net.Uri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lumen.xmlreader.domain.model.XmlNode
+import com.lumen.xmlreader.domain.model.XmlParseResult
+import com.lumen.xmlreader.domain.repository.XmlParserRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+class ReaderViewModel(
+    private val xmlParserRepository: XmlParserRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<ReaderUiState>(ReaderUiState.Idle)
+    val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
+
+    fun loadXmlUri(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = ReaderUiState.Loading
+            when (val result = xmlParserRepository.parseFromUri(uri)) {
+                is XmlParseResult.Success -> {
+                    val initialExpanded = hashSetOf<String>()
+                    initialExpanded.add(result.documentInfo.rootNode.id)
+                    result.documentInfo.rootNode.hijos.take(5).forEach {
+                        initialExpanded.add(it.id)
+                    }
+
+                    _uiState.value = ReaderUiState.Success(
+                        documentInfo = result.documentInfo,
+                        expandedNodeIds = initialExpanded
+                    )
+                }
+                is XmlParseResult.Error -> {
+                    _uiState.value = ReaderUiState.Error(
+                        message = result.message,
+                        line = result.line,
+                        column = result.column,
+                        snippet = result.rawSnippet
+                    )
+                }
+            }
+        }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                current.copy(searchQuery = query)
+            } else current
+        }
+    }
+
+    fun toggleNodeExpansion(nodeId: String) {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                val updated = current.expandedNodeIds.toMutableSet()
+                if (updated.contains(nodeId)) {
+                    updated.remove(nodeId)
+                } else {
+                    updated.add(nodeId)
+                }
+                current.copy(expandedNodeIds = updated)
+            } else current
+        }
+    }
+
+    fun expandAll() {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                val allIds = hashSetOf<String>()
+                collectAllNodeIds(current.documentInfo.rootNode, allIds)
+                current.copy(expandedNodeIds = allIds)
+            } else current
+        }
+    }
+
+    fun collapseAll() {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                current.copy(expandedNodeIds = emptySet())
+            } else current
+        }
+    }
+
+    fun showNodeDetails(node: XmlNode) {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                current.copy(selectedDetailNode = node)
+            } else current
+        }
+    }
+
+    fun dismissNodeDetails() {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                current.copy(selectedDetailNode = null)
+            } else current
+        }
+    }
+
+    private fun collectAllNodeIds(node: XmlNode, destination: MutableSet<String>) {
+        destination.add(node.id)
+        for (child in node.hijos) {
+            collectAllNodeIds(child, destination)
+        }
+    }
+}
