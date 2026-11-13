@@ -4,12 +4,14 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lumen.xmlreader.domain.model.AppUpdateInfo
 import com.lumen.xmlreader.domain.model.XmlDocumentType
 import com.lumen.xmlreader.domain.model.XmlNode
 import com.lumen.xmlreader.domain.model.XmlParseResult
 import com.lumen.xmlreader.domain.parser.InvoiceDataExtractor
 import com.lumen.xmlreader.domain.pdf.PdfInvoiceGenerator
 import com.lumen.xmlreader.domain.repository.XmlParserRepository
+import com.lumen.xmlreader.domain.updater.AppUpdateChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +24,32 @@ class ReaderViewModel(
 
     private val _uiState = MutableStateFlow<ReaderUiState>(ReaderUiState.Idle)
     val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
+
+    private val _availableUpdate = MutableStateFlow<AppUpdateInfo?>(null)
+    val availableUpdate: StateFlow<AppUpdateInfo?> = _availableUpdate.asStateFlow()
+
+    private val _showUpdateDialog = MutableStateFlow(false)
+    val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
+
+    fun checkForUpdates(context: Context) {
+        viewModelScope.launch {
+            val updateInfo = AppUpdateChecker.checkUpdate(context)
+            if (updateInfo != null && updateInfo.isUpdateAvailable) {
+                _availableUpdate.value = updateInfo
+                _showUpdateDialog.value = true
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _showUpdateDialog.value = false
+    }
+
+    fun openUpdateDialog() {
+        if (_availableUpdate.value != null) {
+            _showUpdateDialog.value = true
+        }
+    }
 
     fun loadXmlUri(uri: Uri) {
         viewModelScope.launch {

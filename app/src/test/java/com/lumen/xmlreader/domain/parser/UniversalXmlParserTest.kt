@@ -2,7 +2,9 @@ package com.lumen.xmlreader.domain.parser
 
 import com.lumen.xmlreader.domain.model.XmlDocumentType
 import com.lumen.xmlreader.domain.model.XmlParseResult
+import com.lumen.xmlreader.domain.updater.AppUpdateChecker
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -116,5 +118,15 @@ class UniversalXmlParserTest {
         val error = result as XmlParseResult.Error
         assertTrue(error.line > 0)
         assertNotNull(error.message)
+    }
+
+    @Test
+    fun testIsNewerVersionDetectsHigherVersion() {
+        assertTrue(AppUpdateChecker.isNewerVersion("1.0.0", "1.0.1"))
+        assertTrue(AppUpdateChecker.isNewerVersion("1.0.0", "v1.1.0"))
+        assertTrue(AppUpdateChecker.isNewerVersion("1.0.0", "2.0.0"))
+        assertFalse(AppUpdateChecker.isNewerVersion("1.0.0", "1.0.0"))
+        assertFalse(AppUpdateChecker.isNewerVersion("1.1.0", "1.0.9"))
+        assertFalse(AppUpdateChecker.isNewerVersion("1.0.0", ""))
     }
 }

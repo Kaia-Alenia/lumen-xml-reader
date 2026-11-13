@@ -1,5 +1,6 @@
 package com.lumen.xmlreader.ui.screens
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.UnfoldLess
 import androidx.compose.material.icons.outlined.UnfoldMore
@@ -43,6 +45,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -63,7 +66,10 @@ import com.lumen.xmlreader.ui.components.LumenFullLogo
 import com.lumen.xmlreader.ui.components.LumenIcon
 import com.lumen.xmlreader.ui.components.NodeDetailDialog
 import com.lumen.xmlreader.ui.components.SearchBarComponent
+import com.lumen.xmlreader.ui.components.UpdateAvailableDialog
 import com.lumen.xmlreader.ui.components.XmlNodeItem
+import com.lumen.xmlreader.ui.theme.LumenYellow
+import com.lumen.xmlreader.ui.theme.LumenYellowDark
 import com.lumen.xmlreader.ui.viewmodel.ReaderTab
 import com.lumen.xmlreader.ui.viewmodel.ReaderUiState
 import com.lumen.xmlreader.ui.viewmodel.ReaderViewModel
@@ -77,7 +83,13 @@ fun ReaderScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val availableUpdate by viewModel.availableUpdate.collectAsState()
+    val showUpdateDialog by viewModel.showUpdateDialog.collectAsState()
     val isDark = isSystemInDarkTheme()
+
+    LaunchedEffect(Unit) {
+        viewModel.checkForUpdates(context)
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -125,6 +137,16 @@ fun ReaderScreen(
                     }
                 },
                 actions = {
+                    if (availableUpdate != null) {
+                        IconButton(onClick = { viewModel.openUpdateDialog() }) {
+                            Icon(
+                                imageVector = Icons.Outlined.NewReleases,
+                                contentDescription = "Actualización disponible",
+                                tint = if (isDark) LumenYellowDark else LumenYellow
+                            )
+                        }
+                    }
+
                     if (uiState is ReaderUiState.Success) {
                         val success = uiState as ReaderUiState.Success
 
@@ -351,6 +373,19 @@ fun ReaderScreen(
                 }
             }
         }
+    }
+
+    if (showUpdateDialog && availableUpdate != null) {
+        UpdateAvailableDialog(
+            updateInfo = availableUpdate!!,
+            onDismiss = { viewModel.dismissUpdateDialog() },
+            onUpdateClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(availableUpdate!!.downloadUrl)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
+        )
     }
 }
 
