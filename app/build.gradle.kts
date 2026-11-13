@@ -1,3 +1,5 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,7 +7,7 @@ plugins {
 
 fun computeVersionCode(): Int {
     return try {
-        val stdout = java.io.ByteArrayOutputStream()
+        val stdout = ByteArrayOutputStream()
         project.exec {
             commandLine("git", "rev-list", "--count", "HEAD")
             standardOutput = stdout
@@ -22,7 +24,7 @@ fun computeVersionName(): String {
         return envTag.removePrefix("v")
     }
     return try {
-        val stdout = java.io.ByteArrayOutputStream()
+        val stdout = ByteArrayOutputStream()
         project.exec {
             commandLine("git", "describe", "--tags", "--always")
             standardOutput = stdout
