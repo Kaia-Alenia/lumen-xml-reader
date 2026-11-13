@@ -3,13 +3,13 @@ package com.lumen.xmlreader.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,17 +25,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.UnfoldLess
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,9 +59,12 @@ import androidx.compose.ui.unit.sp
 import com.lumen.xmlreader.domain.model.XmlNode
 import com.lumen.xmlreader.ui.components.ErrorCardComponent
 import com.lumen.xmlreader.ui.components.LoadingComponent
+import com.lumen.xmlreader.ui.components.LumenFullLogo
+import com.lumen.xmlreader.ui.components.LumenIcon
 import com.lumen.xmlreader.ui.components.NodeDetailDialog
 import com.lumen.xmlreader.ui.components.SearchBarComponent
 import com.lumen.xmlreader.ui.components.XmlNodeItem
+import com.lumen.xmlreader.ui.viewmodel.ReaderTab
 import com.lumen.xmlreader.ui.viewmodel.ReaderUiState
 import com.lumen.xmlreader.ui.viewmodel.ReaderViewModel
 
@@ -67,6 +75,7 @@ fun ReaderScreen(
     onNavigateToHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val isDark = isSystemInDarkTheme()
 
@@ -80,22 +89,29 @@ fun ReaderScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = when (val state = uiState) {
-                                is ReaderUiState.Success -> state.documentInfo.fileName
-                                else -> "LUMEN"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (uiState is ReaderUiState.Success) {
-                            val success = uiState as ReaderUiState.Success
+                    if (uiState is ReaderUiState.Success) {
+                        val success = uiState as ReaderUiState.Success
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = success.documentInfo.fileName,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             Text(
                                 text = "${success.documentInfo.totalNodes} nodos • ${success.documentInfo.fileSizeFormatted}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            LumenIcon(size = 24.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "LUMEN",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -110,17 +126,39 @@ fun ReaderScreen(
                 },
                 actions = {
                     if (uiState is ReaderUiState.Success) {
-                        IconButton(onClick = { viewModel.expandAll() }) {
+                        val success = uiState as ReaderUiState.Success
+
+                        FilledTonalButton(
+                            onClick = { viewModel.exportPdf(context) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
                             Icon(
-                                imageVector = Icons.Outlined.UnfoldMore,
-                                contentDescription = "Expandir todo"
+                                imageVector = Icons.Outlined.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Exportar PDF",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                        IconButton(onClick = { viewModel.collapseAll() }) {
-                            Icon(
-                                imageVector = Icons.Outlined.UnfoldLess,
-                                contentDescription = "Colapsar todo"
-                            )
+
+                        if (success.selectedTab == ReaderTab.ARBOL) {
+                            IconButton(onClick = { viewModel.expandAll() }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.UnfoldMore,
+                                    contentDescription = "Expandir todo"
+                                )
+                            }
+                            IconButton(onClick = { viewModel.collapseAll() }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.UnfoldLess,
+                                    contentDescription = "Colapsar todo"
+                                )
+                            }
                         }
                     }
                     IconButton(
@@ -189,70 +227,116 @@ fun ReaderScreen(
                 }
 
                 is ReaderUiState.Success -> {
-                    val visibleNodes = flattenVisibleNodes(
-                        root = state.documentInfo.rootNode,
-                        expandedIds = state.expandedNodeIds,
-                        query = state.searchQuery
-                    )
-
                     Column(modifier = Modifier.fillMaxSize()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        TabRow(
+                            selectedTabIndex = state.selectedTab.ordinal,
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.primary,
+                            divider = {
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(state.documentInfo.documentType.badgeColorHex))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = state.documentInfo.documentType.label,
-                                        color = Color.White,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                            ReaderTab.entries.forEach { tab ->
+                                Tab(
+                                    selected = state.selectedTab == tab,
+                                    onClick = { viewModel.selectTab(tab) },
+                                    text = {
+                                        Text(
+                                            text = tab.title,
+                                            fontWeight = if (state.selectedTab == tab) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+                                )
+                            }
+                        }
 
-                                Text(
-                                    text = "${visibleNodes.size} visibles",
-                                    fontSize = 12.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        when (state.selectedTab) {
+                            ReaderTab.FACTURA -> {
+                                InvoiceView(
+                                    invoice = state.invoiceData,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            ReaderTab.ARBOL -> {
+                                val visibleNodes = flattenVisibleNodes(
+                                    root = state.documentInfo.rootNode,
+                                    expandedIds = state.expandedNodeIds,
+                                    query = state.searchQuery
+                                )
 
-                            SearchBarComponent(
-                                query = state.searchQuery,
-                                onQueryChanged = { viewModel.onSearchQueryChanged(it) }
-                            )
-                        }
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(Color(state.documentInfo.documentType.badgeColorHex))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = state.documentInfo.documentType.label,
+                                                    color = Color.White,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
 
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            items(
-                                items = visibleNodes,
-                                key = { it.id }
-                            ) { node ->
-                                val isExpanded = state.expandedNodeIds.contains(node.id)
-                                XmlNodeItem(
-                                    node = node,
-                                    isExpanded = isExpanded,
-                                    onToggleExpand = { viewModel.toggleNodeExpansion(node.id) },
-                                    onNodeClick = { viewModel.showNodeDetails(node) },
-                                    onNodeLongClick = { viewModel.showNodeDetails(node) }
+                                            Text(
+                                                text = "${visibleNodes.size} visibles",
+                                                fontSize = 12.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        SearchBarComponent(
+                                            query = state.searchQuery,
+                                            onQueryChanged = { viewModel.onSearchQueryChanged(it) }
+                                        )
+                                    }
+
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        items(
+                                            items = visibleNodes,
+                                            key = { it.id }
+                                        ) { node ->
+                                            val isExpanded = state.expandedNodeIds.contains(node.id)
+                                            XmlNodeItem(
+                                                node = node,
+                                                isExpanded = isExpanded,
+                                                onToggleExpand = { viewModel.toggleNodeExpansion(node.id) },
+                                                onNodeClick = { viewModel.showNodeDetails(node) },
+                                                onNodeLongClick = { viewModel.showNodeDetails(node) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            ReaderTab.CRUDO -> {
+                                RawXmlView(
+                                    rawXml = state.documentInfo.rawXml,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                         }
@@ -286,33 +370,12 @@ private fun IdleWelcomeView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Description,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(36.dp)
-            )
-        }
+        LumenFullLogo(iconSize = 76.dp)
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "LUMEN",
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Abre cualquier archivo XML y examina su estructura en árbol interactivo con soporte para namespaces y atributos.",
+            text = "Abre cualquier archivo XML y examina su factura limpia, árbol interactivo o código crudo original.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -356,13 +419,13 @@ private fun IdleWelcomeView(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Formatos admitidos:",
+                text = "Formatos y vistas:",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "• Facturas CFDI 3.3 / 4.0 del SAT México\n• AndroidManifest.xml y layouts de UI\n• Archivos Maven pom.xml y Gradle configs\n• Vectores SVG y configuraciones Spring",
+                text = "• Vista Factura: Presentación comercial estilizada para CFDI 3.3 y 4.0\n• Vista Árbol: Jerarquía interactiva con namespaces y chips de atributos\n• Vista Crudo: Código XML plano con copia rápida\n• Exportación PDF: Generación nativa y envío por WhatsApp o correo",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp

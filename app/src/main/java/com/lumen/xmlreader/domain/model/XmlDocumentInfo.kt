@@ -7,5 +7,6 @@ data class XmlDocumentInfo(
     val rootNode: XmlNode,
     val documentType: XmlDocumentType,
     val totalNodes: Int,
-    val encoding: String = "UTF-8"
+    val encoding: String = "UTF-8",
+    val rawXml: String = ""
 )

@@ -1,6 +1,5 @@
 package com.lumen.xmlreader.domain.parser
 
-import android.util.Xml
 import com.lumen.xmlreader.domain.model.XmlDocumentInfo
 import com.lumen.xmlreader.domain.model.XmlNode
 import com.lumen.xmlreader.domain.model.XmlParseResult
@@ -27,7 +26,8 @@ object UniversalXmlParser {
         inputStream: InputStream,
         fileName: String,
         fileSizeFormatted: String,
-        uriString: String
+        uriString: String,
+        rawXml: String = ""
     ): XmlParseResult {
         val factory = XmlPullParserFactory.newInstance()
         factory.isNamespaceAware = true
@@ -110,7 +110,8 @@ object UniversalXmlParser {
                         rootNode = rootNode,
                         documentType = detectedType,
                         totalNodes = totalNodes,
-                        encoding = parser.inputEncoding ?: "UTF-8"
+                        encoding = parser.inputEncoding ?: "UTF-8",
+                        rawXml = rawXml
                     )
                 )
             } else {

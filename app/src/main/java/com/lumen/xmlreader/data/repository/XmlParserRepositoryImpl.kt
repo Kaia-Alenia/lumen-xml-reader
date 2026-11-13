@@ -8,6 +8,7 @@ import com.lumen.xmlreader.domain.repository.FileRepository
 import com.lumen.xmlreader.domain.repository.XmlParserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayInputStream
 
 class XmlParserRepositoryImpl(
     private val fileRepository: FileRepository
@@ -25,11 +26,25 @@ class XmlParserRepositoryImpl(
             )
         }
 
+        val bytes = try {
+            inputStream.use { it.readBytes() }
+        } catch (e: Exception) {
+            return@withContext XmlParseResult.Error(
+                message = e.localizedMessage ?: "Error al leer los datos del archivo.",
+                line = 0,
+                column = 0
+            )
+        }
+
+        val rawXml = String(bytes, Charsets.UTF_8)
+        val parseInputStream = ByteArrayInputStream(bytes)
+
         val result = UniversalXmlParser.parse(
-            inputStream = inputStream,
+            inputStream = parseInputStream,
             fileName = fileName,
             fileSizeFormatted = fileSizeFormatted,
-            uriString = uri.toString()
+            uriString = uri.toString(),
+            rawXml = rawXml
         )
 
         if (result is XmlParseResult.Success) {

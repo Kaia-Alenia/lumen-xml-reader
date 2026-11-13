@@ -26,7 +26,8 @@ class UniversalXmlParserTest {
             inputStream = inputStream,
             fileName = "sample.xml",
             fileSizeFormatted = "1.0 KB",
-            uriString = "content://test/sample.xml"
+            uriString = "content://test/sample.xml",
+            rawXml = xmlContent
         )
 
         assertTrue(result is XmlParseResult.Success)
@@ -34,6 +35,7 @@ class UniversalXmlParserTest {
         assertEquals("root", success.documentInfo.rootNode.nombre)
         assertEquals("test", success.documentInfo.rootNode.atributos["app"])
         assertEquals(1, success.documentInfo.rootNode.hijos.size)
+        assertEquals(xmlContent, success.documentInfo.rawXml)
 
         val parent = success.documentInfo.rootNode.hijos[0]
         assertEquals("parent", parent.nombre)
@@ -49,12 +51,17 @@ class UniversalXmlParserTest {
     fun testParseCfdiSatXmlDetection() {
         val cfdiXml = """
             <?xml version="1.0" encoding="utf-8"?>
-            <cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" Version="4.0" Total="1500.00" Moneda="MXN">
+            <cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" Version="4.0" Folio="1585" SubTotal="1293.10" Total="1500.00" Moneda="MXN">
                 <cfdi:Emisor Rfc="XAXX010101000" Nombre="EMPRESA PRUEBA SA DE CV" RegimenFiscal="601" />
-                <cfdi:Receptor Rfc="XEXX010101000" Nombre="PUBLICO EN GENERAL" UsoCFDI="G03" />
+                <cfdi:Receptor Rfc="XEXX010101000" Nombre="PUBLICO EN GENERAL" DomicilioFiscalReceptor="01000" UsoCFDI="G03" />
                 <cfdi:Conceptos>
-                    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" Descripcion="Servicio" ValorUnitario="1500.00" Importe="1500.00" />
+                    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" Descripcion="Servicio Profesional" ValorUnitario="1293.10" Importe="1293.10" />
                 </cfdi:Conceptos>
+                <cfdi:Impuestos TotalImpuestosTrasladados="206.90">
+                    <cfdi:Traslados>
+                        <cfdi:Traslado Base="1293.10" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="206.90" />
+                    </cfdi:Traslados>
+                </cfdi:Impuestos>
             </cfdi:Comprobante>
         """.trimIndent()
 
@@ -63,7 +70,8 @@ class UniversalXmlParserTest {
             inputStream = inputStream,
             fileName = "factura_sat.xml",
             fileSizeFormatted = "2.5 KB",
-            uriString = "content://test/factura_sat.xml"
+            uriString = "content://test/factura_sat.xml",
+            rawXml = cfdiXml
         )
 
         assertTrue(result is XmlParseResult.Success)
@@ -71,7 +79,21 @@ class UniversalXmlParserTest {
         assertEquals(XmlDocumentType.CFDI_SAT, success.documentInfo.documentType)
         assertEquals("cfdi:Comprobante", success.documentInfo.rootNode.nombre)
         assertEquals("4.0", success.documentInfo.rootNode.atributos["Version"])
-        assertEquals(3, success.documentInfo.rootNode.hijos.size)
+        assertEquals(4, success.documentInfo.rootNode.hijos.size)
+
+        val invoice = InvoiceDataExtractor.extract(success.documentInfo.rootNode)
+        assertEquals("1585", invoice.folio)
+        assertEquals("EMPRESA PRUEBA SA DE CV", invoice.emisorNombre)
+        assertEquals("XAXX010101000", invoice.emisorRfc)
+        assertEquals("601", invoice.emisorRegimen)
+        assertEquals("PUBLICO EN GENERAL", invoice.receptorNombre)
+        assertEquals("XEXX010101000", invoice.receptorRfc)
+        assertEquals("01000", invoice.receptorDomicilio)
+        assertEquals(1, invoice.conceptos.size)
+        assertEquals("Servicio Profesional", invoice.conceptos[0].descripcion)
+        assertEquals("1,293.10", invoice.subtotal)
+        assertEquals("206.90", invoice.iva)
+        assertEquals("1,500.00", invoice.total)
     }
 
     @Test

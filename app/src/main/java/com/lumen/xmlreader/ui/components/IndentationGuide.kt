@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,14 +30,13 @@ fun IndentationGuide(
                 modifier = Modifier
                     .width(stepWidth)
                     .fillMaxHeight()
-                    .height(36.dp)
             ) {
                 val x = size.width / 2
                 drawLine(
                     color = guideColor,
                     start = Offset(x, 0f),
                     end = Offset(x, size.height),
-                    strokeWidth = 2.5f
+                    strokeWidth = 2f
                 )
             }
         }

@@ -1,10 +1,14 @@
 package com.lumen.xmlreader.ui.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lumen.xmlreader.domain.model.XmlDocumentType
 import com.lumen.xmlreader.domain.model.XmlNode
 import com.lumen.xmlreader.domain.model.XmlParseResult
+import com.lumen.xmlreader.domain.parser.InvoiceDataExtractor
+import com.lumen.xmlreader.domain.pdf.PdfInvoiceGenerator
 import com.lumen.xmlreader.domain.repository.XmlParserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +34,17 @@ class ReaderViewModel(
                         initialExpanded.add(it.id)
                     }
 
+                    val invoiceData = InvoiceDataExtractor.extract(result.documentInfo.rootNode)
+                    val defaultTab = if (result.documentInfo.documentType == XmlDocumentType.CFDI_SAT || invoiceData.isCfdi) {
+                        ReaderTab.FACTURA
+                    } else {
+                        ReaderTab.ARBOL
+                    }
+
                     _uiState.value = ReaderUiState.Success(
                         documentInfo = result.documentInfo,
+                        invoiceData = invoiceData,
+                        selectedTab = defaultTab,
                         expandedNodeIds = initialExpanded
                     )
                 }
@@ -44,6 +57,21 @@ class ReaderViewModel(
                     )
                 }
             }
+        }
+    }
+
+    fun selectTab(tab: ReaderTab) {
+        _uiState.update { current ->
+            if (current is ReaderUiState.Success) {
+                current.copy(selectedTab = tab)
+            } else current
+        }
+    }
+
+    fun exportPdf(context: Context) {
+        val state = _uiState.value
+        if (state is ReaderUiState.Success) {
+            PdfInvoiceGenerator.generateAndShare(context, state.invoiceData)
         }
     }
 
