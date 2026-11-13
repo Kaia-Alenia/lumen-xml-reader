@@ -3,6 +3,37 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+fun computeVersionCode(): Int {
+    return try {
+        val stdout = java.io.ByteArrayOutputStream()
+        project.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+            standardOutput = stdout
+        }
+        stdout.toString().trim().toIntOrNull()?.coerceAtLeast(1) ?: 1
+    } catch (_: Exception) {
+        1
+    }
+}
+
+fun computeVersionName(): String {
+    val envTag = System.getenv("GITHUB_REF_NAME")
+    if (!envTag.isNullOrBlank() && envTag.startsWith("v")) {
+        return envTag.removePrefix("v")
+    }
+    return try {
+        val stdout = java.io.ByteArrayOutputStream()
+        project.exec {
+            commandLine("git", "describe", "--tags", "--always")
+            standardOutput = stdout
+        }
+        val tag = stdout.toString().trim()
+        if (tag.startsWith("v")) tag.substring(1) else tag
+    } catch (_: Exception) {
+        "1.1.0"
+    }
+}
+
 android {
     namespace = "com.lumen.xmlreader"
     compileSdk = 34
@@ -11,8 +42,8 @@ android {
         applicationId = "com.lumen.xmlreader"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = computeVersionCode()
+        versionName = computeVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
