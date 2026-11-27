@@ -53,7 +53,22 @@ android {
         }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            val sharedKeystore = file("lumen-debug.keystore")
+            if (sharedKeystore.exists()) {
+                storeFile = sharedKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

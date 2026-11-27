@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { AppUpdateInfo, isNewerVersion } from '../domain/updateChecker';
 import { isTauriEnvironment } from './fileService';
 
-const CURRENT_FALLBACK_VERSION = '1.2.0';
+const CURRENT_FALLBACK_VERSION = '1.2.1';
 const GITHUB_RELEASE_API_URL =
   'https://api.github.com/repos/Kaia-Alenia/lumen-xml-reader/releases/latest';
 const GITHUB_RELEASES_PAGE_URL =

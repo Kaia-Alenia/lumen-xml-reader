@@ -85,6 +85,7 @@ fun ReaderScreen(
     val uiState by viewModel.uiState.collectAsState()
     val availableUpdate by viewModel.availableUpdate.collectAsState()
     val showUpdateDialog by viewModel.showUpdateDialog.collectAsState()
+    val updateDownloadState by viewModel.updateDownloadState.collectAsState()
     val isDark = isSystemInDarkTheme()
 
     LaunchedEffect(Unit) {
@@ -378,13 +379,9 @@ fun ReaderScreen(
     if (showUpdateDialog && availableUpdate != null) {
         UpdateAvailableDialog(
             updateInfo = availableUpdate!!,
+            downloadState = updateDownloadState,
             onDismiss = { viewModel.dismissUpdateDialog() },
-            onUpdateClick = {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(availableUpdate!!.downloadUrl)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(intent)
-            }
+            onUpdateClick = { viewModel.downloadAndInstallUpdate(context) }
         )
     }
 }

@@ -11,12 +11,21 @@ import com.lumen.xmlreader.domain.model.XmlParseResult
 import com.lumen.xmlreader.domain.parser.InvoiceDataExtractor
 import com.lumen.xmlreader.domain.pdf.PdfInvoiceGenerator
 import com.lumen.xmlreader.domain.repository.XmlParserRepository
+import com.lumen.xmlreader.domain.updater.ApkUpdateInstaller
 import com.lumen.xmlreader.domain.updater.AppUpdateChecker
+import com.lumen.xmlreader.domain.updater.UpdateInstallResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+data class UpdateDownloadState(
+    val isDownloading: Boolean = false,
+    val progress: Float = 0f,
+    val statusMessage: String? = null,
+    val errorMessage: String? = null
+)
 
 class ReaderViewModel(
     private val xmlParserRepository: XmlParserRepository
@@ -31,6 +40,9 @@ class ReaderViewModel(
     private val _showUpdateDialog = MutableStateFlow(false)
     val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
 
+    private val _updateDownloadState = MutableStateFlow(UpdateDownloadState())
+    val updateDownloadState: StateFlow<UpdateDownloadState> = _updateDownloadState.asStateFlow()
+
     fun checkForUpdates(context: Context) {
         viewModelScope.launch {
             val updateInfo = AppUpdateChecker.checkUpdate(context)
@@ -42,12 +54,55 @@ class ReaderViewModel(
     }
 
     fun dismissUpdateDialog() {
-        _showUpdateDialog.value = false
+        if (!_updateDownloadState.value.isDownloading) {
+            _showUpdateDialog.value = false
+        }
     }
 
     fun openUpdateDialog() {
         if (_availableUpdate.value != null) {
             _showUpdateDialog.value = true
+        }
+    }
+
+    fun downloadAndInstallUpdate(context: Context) {
+        val update = _availableUpdate.value ?: return
+        if (_updateDownloadState.value.isDownloading) return
+
+        viewModelScope.launch {
+            _updateDownloadState.value = UpdateDownloadState(
+                isDownloading = true,
+                progress = 0f
+            )
+
+            when (
+                val result = ApkUpdateInstaller.downloadAndInstall(
+                    context = context,
+                    downloadUrl = update.downloadUrl,
+                    onProgress = { progress ->
+                        _updateDownloadState.update { current ->
+                            current.copy(progress = progress)
+                        }
+                    }
+                )
+            ) {
+                is UpdateInstallResult.InstallerLaunched -> {
+                    _updateDownloadState.value = UpdateDownloadState()
+                    _showUpdateDialog.value = false
+                }
+                is UpdateInstallResult.PermissionRequired -> {
+                    _updateDownloadState.value = UpdateDownloadState(
+                        isDownloading = false,
+                        statusMessage = "Habilita 'Instalar apps desconocidas' para LUMEN y vuelve a pulsar Actualizar."
+                    )
+                }
+                is UpdateInstallResult.Error -> {
+                    _updateDownloadState.value = UpdateDownloadState(
+                        isDownloading = false,
+                        errorMessage = result.message
+                    )
+                }
+            }
         }
     }
 

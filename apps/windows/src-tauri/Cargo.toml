@@ -1,6 +1,6 @@
 [package]
 name = "lumen_windows"
-version = "1.2.0"
+version = "1.2.1"
 description = "LUMEN - Clean XML and CFDI reader for Windows by Alenia Studios"
 authors = ["Alenia Studios"]
 license = "GPL-3.0"

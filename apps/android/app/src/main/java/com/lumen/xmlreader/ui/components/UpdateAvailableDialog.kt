@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -42,10 +43,12 @@ import com.lumen.xmlreader.ui.theme.LumenYellow
 import com.lumen.xmlreader.ui.theme.LumenYellowDark
 import com.lumen.xmlreader.ui.theme.TealPrimary
 import com.lumen.xmlreader.ui.theme.TealPrimaryDark
+import com.lumen.xmlreader.ui.viewmodel.UpdateDownloadState
 
 @Composable
 fun UpdateAvailableDialog(
     updateInfo: AppUpdateInfo,
+    downloadState: UpdateDownloadState,
     onDismiss: () -> Unit,
     onUpdateClick: () -> Unit
 ) {
@@ -150,6 +153,58 @@ fun UpdateAvailableDialog(
                     }
                 }
 
+                if (downloadState.isDownloading) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    if (downloadState.progress >= 0f) {
+                        LinearProgressIndicator(
+                            progress = { downloadState.progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (isDark) TealPrimaryDark else TealPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Descargando actualización... ${(downloadState.progress * 100).toInt()}%",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (isDark) TealPrimaryDark else TealPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Descargando actualización...",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (!downloadState.statusMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = downloadState.statusMessage,
+                        fontSize = 11.sp,
+                        color = if (isDark) TealPrimary else TealPrimaryDark
+                    )
+                }
+
+                if (!downloadState.errorMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = downloadState.errorMessage,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Row(
@@ -158,6 +213,7 @@ fun UpdateAvailableDialog(
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
+                        enabled = !downloadState.isDownloading,
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -169,6 +225,7 @@ fun UpdateAvailableDialog(
 
                     Button(
                         onClick = onUpdateClick,
+                        enabled = !downloadState.isDownloading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isDark) TealPrimaryDark else TealPrimary
                         ),
@@ -182,7 +239,7 @@ fun UpdateAvailableDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Actualizar",
+                            text = if (downloadState.isDownloading) "Descargando..." else "Actualizar",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
